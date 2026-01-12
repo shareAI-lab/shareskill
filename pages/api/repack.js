@@ -16,7 +16,7 @@ function getSafeFileName(value) {
   return sanitizeName(value) || "skill";
 }
 
-function getRepoZipUrl(repoUrl) {
+function getRepoZipUrl(repoUrl, ref = "HEAD") {
   if (!repoUrl) {
     return "";
   }
@@ -29,7 +29,8 @@ function getRepoZipUrl(repoUrl) {
   if (!owner || !repo) {
     return "";
   }
-  return `https://codeload.github.com/${owner}/${repo}/zip/HEAD`;
+  const safeRef = encodeURIComponent(ref || "HEAD");
+  return `https://codeload.github.com/${owner}/${repo}/zip/${safeRef}`;
 }
 
 function isAllowedUrl(value) {
@@ -103,13 +104,13 @@ async function loadZip(url) {
   }
 }
 
-async function fetchZip({ url, repoUrl }) {
+async function fetchZip({ url, repoUrl, repoRef }) {
   if (url) {
     try {
       return await loadZip(url);
     } catch (error) {
       if (repoUrl) {
-        const repoZip = getRepoZipUrl(repoUrl);
+        const repoZip = getRepoZipUrl(repoUrl, repoRef);
         if (repoZip) {
           return await loadZip(repoZip);
         }
@@ -118,7 +119,7 @@ async function fetchZip({ url, repoUrl }) {
     }
   }
   if (repoUrl) {
-    const repoZip = getRepoZipUrl(repoUrl);
+    const repoZip = getRepoZipUrl(repoUrl, repoRef);
     if (repoZip) {
       return await loadZip(repoZip);
     }
@@ -171,6 +172,42 @@ function getQueryValue(value) {
   return value || "";
 }
 
+function parseDownloadDirectoryUrl(value) {
+  try {
+    const url = new URL(value);
+    if (url.hostname !== "download-directory.github.io") {
+      return null;
+    }
+    const inner = url.searchParams.get("url");
+    if (!inner) {
+      return null;
+    }
+    const innerUrl = new URL(inner);
+    if (innerUrl.hostname !== "github.com") {
+      return null;
+    }
+    const segments = innerUrl.pathname.split("/").filter(Boolean);
+    if (segments.length < 2) {
+      return null;
+    }
+    const [owner, repo, marker, ref, ...rest] = segments;
+    if (marker !== "tree" || !ref) {
+      return {
+        repoUrl: `https://github.com/${owner}/${repo}`,
+        skillPath: "",
+        ref: "HEAD"
+      };
+    }
+    return {
+      repoUrl: `https://github.com/${owner}/${repo}`,
+      skillPath: rest.join("/"),
+      ref
+    };
+  } catch (error) {
+    return null;
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== "GET") {
     res.status(405).send("Method not allowed");
@@ -178,11 +215,23 @@ export default async function handler(req, res) {
   }
 
   try {
-    const url = getQueryValue(req.query.url);
-    const repo = getQueryValue(req.query.repo);
-    const skillPath = getQueryValue(req.query.skillPath);
+    let url = getQueryValue(req.query.url);
+    let repo = getQueryValue(req.query.repo);
+    let skillPath = getQueryValue(req.query.skillPath);
     const name = getQueryValue(req.query.name);
-    const zip = await fetchZip({ url, repoUrl: repo });
+    let repoRef = "";
+    if (url) {
+      const parsed = parseDownloadDirectoryUrl(url);
+      if (parsed) {
+        repo = repo || parsed.repoUrl;
+        repoRef = parsed.ref || repoRef;
+        if (!skillPath && parsed.skillPath) {
+          skillPath = parsed.skillPath;
+        }
+        url = "";
+      }
+    }
+    const zip = await fetchZip({ url, repoUrl: repo, repoRef });
     const folderName = getSafeFileName(name || skillPath || "skill");
     const output = buildOutputZip({
       zip,

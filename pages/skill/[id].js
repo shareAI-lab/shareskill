@@ -64,14 +64,9 @@ export default function SkillDetail() {
   }, [skill, language]);
   const descriptionText = useMemo(
     () =>
-      getLocalizedText(
-        {
-          zh: skill?.description_zh,
-          en: skill?.description_en,
-          fallback: skill?.description
-        },
-        language
-      ),
+      language === "zh"
+        ? skill?.description_zh || ""
+        : skill?.description_en || "",
     [skill, language]
   );
   const useCaseText = useMemo(

@@ -15,6 +15,7 @@
     "react-dom": "18.3.1",
     "react-markdown": "9.0.1",
     "remark-gfm": "4.0.0",
-    "sql.js": "1.10.2"
+    "sql.js": "1.10.2",
+    "@supabase/supabase-js": "2.45.3"
   }
 }

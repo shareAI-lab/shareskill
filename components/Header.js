@@ -32,7 +32,7 @@ export default function Header({ children }) {
             <LanguageToggle />
             <a
               className="gh-link"
-              href="https://github.com/Gui-Yue/share-best-skill-frontend"
+              href="https://github.com/shareAI-lab"
               target="_blank"
               rel="noreferrer"
               aria-label="GitHub"

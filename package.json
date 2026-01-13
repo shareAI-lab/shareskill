@@ -1,0 +1,21 @@
+{
+  "name": "skill-search-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "postinstall": "node scripts/copy-sql-wasm.js"
+  },
+  "dependencies": {
+    "jszip": "3.10.1",
+    "next": "14.2.5",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-markdown": "9.0.1",
+    "remark-gfm": "4.0.0",
+    "sql.js": "1.10.2",
+    "@supabase/supabase-js": "2.45.3"
+  }
+}

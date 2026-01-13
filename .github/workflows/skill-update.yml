@@ -1,0 +1,72 @@
+name: Upgrade Skills
+
+on:
+  schedule:
+    - cron: "0 18 */2 * *"
+  workflow_dispatch:
+
+jobs:
+  upgrade-skills:
+    if: ${{ vars.SKILL_UPDATE_ENABLED == '1' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      user: ${{ secrets.PG_USER }}
+      password: ${{ secrets.PG_PASSWORD }}
+      host: ${{ secrets.PG_HOST }}
+      port: ${{ secrets.PG_PORT }}
+      dbname: ${{ secrets.PG_DBNAME }}
+      PG_SCHEMA: ${{ vars.PG_SCHEMA }}
+      GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+      CURRENT_MODEL: ${{ vars.CURRENT_MODEL }}
+      CLAUDE_MODEL_ID: ${{ vars.CLAUDE_MODEL_ID }}
+      CLAUDE_API_URL: ${{ vars.CLAUDE_API_URL }}
+      CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+      DEEPSEEK_MODEL_ID: ${{ vars.DEEPSEEK_MODEL_ID }}
+      DEEPSEEK_API_URL: ${{ vars.DEEPSEEK_API_URL }}
+      DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+      OPENAI_MODEL_ID: ${{ vars.OPENAI_MODEL_ID }}
+      OPENAI_API_URL: ${{ vars.OPENAI_API_URL }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      MAX_CONCURRENT: ${{ vars.MAX_CONCURRENT }}
+      MAX_RETRIES: ${{ vars.MAX_RETRIES }}
+      RETRY_DELAY: ${{ vars.RETRY_DELAY }}
+      LLM_MAX_CONCURRENT: ${{ vars.LLM_MAX_CONCURRENT }}
+      VALIDATION_MAX_CONCURRENT: ${{ vars.VALIDATION_MAX_CONCURRENT }}
+      VALIDATION_TASK_TIMEOUT: ${{ vars.VALIDATION_TASK_TIMEOUT }}
+      SKILL_MD_TRANSLATION_MAX_CHARS: ${{ vars.SKILL_MD_TRANSLATION_MAX_CHARS }}
+      SKILL_MD_TRANSLATION_CHUNK_CHARS: ${{ vars.SKILL_MD_TRANSLATION_CHUNK_CHARS }}
+      ANALYSIS_MAX_CHARS: ${{ vars.ANALYSIS_MAX_CHARS }}
+      DESCRIPTION_TASK_TIMEOUT: ${{ vars.DESCRIPTION_TASK_TIMEOUT }}
+      ANALYSIS_TASK_TIMEOUT: ${{ vars.ANALYSIS_TASK_TIMEOUT }}
+      TRANSLATION_TASK_TIMEOUT: ${{ vars.TRANSLATION_TASK_TIMEOUT }}
+      PG_COMMIT_EVERY: ${{ vars.PG_COMMIT_EVERY }}
+      SKILL_MD_MAX_BYTES: ${{ vars.SKILL_MD_MAX_BYTES }}
+      SUBSTEP_TIMEOUT: ${{ vars.SUBSTEP_TIMEOUT }}
+      REPO_SIZE_FULL_CLONE_MAX_KB: ${{ vars.REPO_SIZE_FULL_CLONE_MAX_KB }}
+      SKILL_ENTRY_WORKERS: ${{ vars.SKILL_ENTRY_WORKERS }}
+      REPO_CONCURRENT: ${{ vars.REPO_CONCURRENT }}
+      REPO_REQUEST_INTERVAL: ${{ vars.REPO_REQUEST_INTERVAL }}
+      MAX_SKILLS_PER_REPO: ${{ vars.MAX_SKILLS_PER_REPO }}
+      SKILLPATH_FIX_CONCURRENT: ${{ vars.SKILLPATH_FIX_CONCURRENT }}
+      TAGLINE_ZH_MAX_CHARS: ${{ vars.TAGLINE_ZH_MAX_CHARS }}
+      TAGLINE_EN_MAX_WORDS: ${{ vars.TAGLINE_EN_MAX_WORDS }}
+      VERIFY_DB_WRITE: ${{ vars.VERIFY_DB_WRITE }}
+      VERIFY_LOG_MAX_LEN: ${{ vars.VERIFY_LOG_MAX_LEN }}
+      LLM_REQUEST_INTERVAL: ${{ vars.LLM_REQUEST_INTERVAL }}
+      LOG_CLEARED_OUTPUTS: ${{ vars.LOG_CLEARED_OUTPUTS }}
+      LOG_CLEARED_OUTPUTS_LIMIT: ${{ vars.LOG_CLEARED_OUTPUTS_LIMIT }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run skill update
+        working-directory: upgrade_data
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          python skill_update.py

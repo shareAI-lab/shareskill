@@ -1,0 +1,6 @@
+{
+  "buildCommand": "pnpm --filter @shareskill/web build",
+  "outputDirectory": "apps/web/.vercel/output",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "framework": null
+}

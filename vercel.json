@@ -1,6 +1,0 @@
-{
-  "framework": "sveltekit",
-  "installCommand": "pnpm install",
-  "buildCommand": "pnpm --filter @shareskill/shared build && pnpm --filter @shareskill/db build && pnpm --filter @shareskill/web build",
-  "outputDirectory": "apps/web/.svelte-kit"
-}

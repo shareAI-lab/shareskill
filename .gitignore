@@ -1,0 +1,11 @@
+node_modules
+dist
+.svelte-kit
+.vercel
+.turbo
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+coverage

@@ -1,0 +1,50 @@
+name: Data Pipeline
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      full_refresh:
+        description: 'Full refresh (ignore SHA)'
+        required: false
+        default: 'false'
+
+env:
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+  GITHUB_TOKENS: ${{ secrets.GITHUB_TOKENS }}
+  GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - run: pnpm install
+
+      - name: Build dependencies
+        run: pnpm --filter @shareskill/shared build && pnpm --filter @shareskill/db build
+
+      - name: Run Pipeline
+        run: pnpm --filter @shareskill/pipeline start
+        env:
+          FULL_REFRESH: ${{ github.event.inputs.full_refresh }}
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "Pipeline failed!"

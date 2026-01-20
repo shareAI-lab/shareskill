@@ -1,0 +1,27 @@
+{
+  "name": "@shareskill/pipeline",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx --env-file=.env src/index.ts",
+    "translate": "tsx --env-file=.env src/translate.ts",
+    "translate:security": "tsx --env-file=.env src/translate-security.ts",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "@shareskill/db": "workspace:*",
+    "@shareskill/shared": "workspace:*",
+    "@supabase/supabase-js": "^2.39.0",
+    "octokit": "^3.1.0",
+    "openai": "^4.28.0",
+    "yaml": "^2.8.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.0"
+  }
+}

@@ -1,0 +1,106 @@
+name: Translation Pipeline
+
+on:
+  # Run after main pipeline completes
+  workflow_run:
+    workflows: ["Data Pipeline"]
+    types:
+      - completed
+  # Manual trigger with options
+  workflow_dispatch:
+    inputs:
+      batch_size:
+        description: 'Skills per batch'
+        required: false
+        default: '500'
+      concurrency:
+        description: 'Parallel requests'
+        required: false
+        default: '50'
+      translate_all:
+        description: 'Translate all untranslated skills'
+        required: false
+        default: 'true'
+        type: boolean
+  # Schedule: Run daily at 3:00 AM UTC
+  schedule:
+    - cron: '0 3 * * *'
+
+env:
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+  GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+  CURRENT_MODEL: ${{ vars.LLM_MODEL || 'gemini' }}
+
+jobs:
+  translate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    # Only run if main pipeline succeeded (for workflow_run trigger)
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build dependencies
+        run: pnpm --filter @shareskill/shared build && pnpm --filter @shareskill/db build
+
+      - name: Run Translation Pipeline
+        working-directory: pipeline
+        env:
+          TRANSLATE_CONCURRENCY: ${{ github.event.inputs.concurrency || '50' }}
+        run: |
+          BATCH_SIZE="${{ github.event.inputs.batch_size || '500' }}"
+          FLAGS="--skip-existing"
+
+          # Add --all flag for scheduled runs or when explicitly requested
+          if [ "${{ github.event.inputs.translate_all }}" = "true" ] || [ "${{ github.event_name }}" = "schedule" ] || [ "${{ github.event_name }}" = "workflow_run" ]; then
+            FLAGS="$FLAGS --all"
+          fi
+
+          echo "Running: pnpm run translate $BATCH_SIZE $FLAGS"
+          pnpm run translate $BATCH_SIZE $FLAGS
+
+      - name: Run Security Warnings Translation
+        working-directory: pipeline
+        env:
+          TRANSLATE_CONCURRENCY: ${{ github.event.inputs.concurrency || '50' }}
+        run: |
+          BATCH_SIZE="${{ github.event.inputs.batch_size || '500' }}"
+          FLAGS="--skip-existing"
+
+          if [ "${{ github.event.inputs.translate_all }}" = "true" ] || [ "${{ github.event_name }}" = "schedule" ] || [ "${{ github.event_name }}" = "workflow_run" ]; then
+            FLAGS="$FLAGS --all"
+          fi
+
+          echo "Running: pnpm run translate:security $BATCH_SIZE $FLAGS"
+          pnpm run translate:security $BATCH_SIZE $FLAGS
+
+      - name: Generate Summary
+        if: always()
+        run: |
+          echo "## Translation Pipeline" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Parameter | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Trigger | ${{ github.event_name }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Batch Size | ${{ github.event.inputs.batch_size || '500' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Concurrency | ${{ github.event.inputs.concurrency || '50' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| LLM Model | ${{ vars.LLM_MODEL || 'gemini' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Translate All | ${{ github.event.inputs.translate_all || 'true' }} |" >> $GITHUB_STEP_SUMMARY
